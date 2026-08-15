@@ -29,6 +29,7 @@ Luego visita `http://localhost:3000`.
 | `←` `→`   | Rotar nave |
 | `↑`       | Propulsar  |
 | `Espacio` | Disparar   |
+| `E`       | Activar escudo |
 
 ## Puntuación
 
@@ -45,4 +46,5 @@ Luego visita `http://localhost:3000`.
 - Asteroides se parten en fragmentos más pequeños al ser destruidos
 - Partículas de explosión al destruir asteroides
 - Power-up Velocidad: duplica la propulsión de la nave durante 5 segundos
+- Escudo: protege durante 3 segundos y absorbe asteroides sin otorgar puntos; tarda 10 segundos en recargarse
 - Estrella fugaz: asteroide rápido que aparece periódicamente, dura 6 segundos y no se divide

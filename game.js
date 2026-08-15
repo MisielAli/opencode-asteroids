@@ -187,6 +187,9 @@ class Ship {
     this.invincible    = 3;
     this.shootCooldown = 0;
     this.speedBoostTimer = 0;
+    this.shieldTimer = 0;
+    this.shieldCooldown = 0;
+    this.shieldRadius = 28;
     this.dead          = false;
   }
 
@@ -195,6 +198,15 @@ class Ship {
     if (this.invincible    > 0) this.invincible    -= dt;
     if (this.shootCooldown > 0) this.shootCooldown -= dt;
     if (this.speedBoostTimer > 0) this.speedBoostTimer -= dt;
+    if (this.shieldTimer > 0) {
+      this.shieldTimer -= dt;
+      if (this.shieldTimer <= 0) {
+        this.shieldTimer = 0;
+        this.shieldCooldown = 10;
+      }
+    } else if (this.shieldCooldown > 0) {
+      this.shieldCooldown = Math.max(0, this.shieldCooldown - dt);
+    }
 
     const ROT   = 3.5;   // rad/s
     const THRUST = 260 * (this.speedBoostTimer > 0 ? 2 : 1);  // px/s²
@@ -226,6 +238,11 @@ class Ship {
 
   activateSpeedBoost() {
     this.speedBoostTimer = 5;
+  }
+
+  activateShield() {
+    if (this.shieldTimer > 0 || this.shieldCooldown > 0 || this.dead) return;
+    this.shieldTimer = 3;
   }
 
   draw() {
@@ -260,6 +277,19 @@ class Ship {
     }
 
     ctx.restore();
+
+    if (this.shieldTimer > 0) {
+      const pulse = 1 + Math.sin(performance.now() * 0.012) * 0.06;
+      ctx.save();
+      ctx.strokeStyle = 'rgba(53,217,255,0.9)';
+      ctx.lineWidth = 2;
+      ctx.shadowColor = '#35d9ff';
+      ctx.shadowBlur = 10;
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, this.shieldRadius * pulse, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+    }
   }
 }
 
@@ -433,6 +463,7 @@ function update(dt) {
   if (pressed('Space')) {
     bullets.push(...ship.tryShoot());
   }
+  if (pressed('KeyE')) ship.activateShield();
 
   shootingStarTimer -= dt;
   if (shootingStarTimer <= 0) {
@@ -478,11 +509,15 @@ function update(dt) {
   // Nave vs asteroide
   if (ship.invincible <= 0) {
     for (const a of asteroids) {
-      if (dist(ship, a) < ship.radius + a.radius * 0.82) {
+      if (ship.shieldTimer > 0 && dist(ship, a) < ship.shieldRadius + a.radius * 0.82) {
+        a.dead = true;
+        explode(a.x, a.y, a.size * 5);
+      } else if (dist(ship, a) < ship.radius + a.radius * 0.82) {
         killShip();
         break;
       }
     }
+    asteroids = asteroids.filter(a => !a.dead);
   }
 
   // Nivel completado
@@ -517,6 +552,20 @@ function drawHUD() {
   if (ship.speedBoostTimer > 0) {
     ctx.fillStyle = '#35d9ff';
     ctx.fillText(`VELOCIDAD x2  ${ship.speedBoostTimer.toFixed(1)}s`, 14, 48);
+    ctx.fillStyle = '#fff';
+  }
+
+  if (ship.shieldTimer > 0) {
+    ctx.fillStyle = '#35d9ff';
+    ctx.fillText(`ESCUDO  ${ship.shieldTimer.toFixed(1)}s`, 14, 70);
+    ctx.fillStyle = '#fff';
+  } else if (ship.shieldCooldown > 0) {
+    ctx.fillStyle = 'rgba(53,217,255,0.7)';
+    ctx.fillText(`ESCUDO RECARGANDO  ${ship.shieldCooldown.toFixed(1)}s`, 14, 70);
+    ctx.fillStyle = '#fff';
+  } else {
+    ctx.fillStyle = '#35d9ff';
+    ctx.fillText('ESCUDO LISTO  E', 14, 70);
     ctx.fillStyle = '#fff';
   }
 
