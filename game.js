@@ -39,6 +39,8 @@ const SHIP_SKINS = [
     flameColor: 'rgba(255, 130, 0, 0.85)',
     thrusterX: -8,
     thrusterWidth: 4,
+    scale: 1,
+    scoreMultiplier: 1,
     points: [[20, 0], [-12, -9], [-7, 0], [-12, 9]],
   },
   {
@@ -48,6 +50,8 @@ const SHIP_SKINS = [
     flameColor: 'rgba(95, 235, 255, 0.9)',
     thrusterX: -12,
     thrusterWidth: 3,
+    scale: 1,
+    scoreMultiplier: 1,
     points: [
       [21, 0], [5, -5], [-11, -10], [-7, -2],
       [-15, 0], [-7, 2], [-11, 10], [5, 5],
@@ -60,9 +64,25 @@ const SHIP_SKINS = [
     flameColor: 'rgba(255, 196, 92, 0.9)',
     thrusterX: -9,
     thrusterWidth: 5,
+    scale: 1,
+    scoreMultiplier: 1,
     points: [
       [18, 0], [10, -7], [-5, -12], [-12, -6],
       [-8, 0], [-12, 6], [-5, 12], [10, 7],
+    ],
+  },
+  {
+    id: 'titan',
+    name: 'TITAN',
+    color: '#b26bff',
+    flameColor: 'rgba(216, 131, 255, 0.9)',
+    thrusterX: -16,
+    thrusterWidth: 6,
+    scale: 2,
+    scoreMultiplier: 2,
+    points: [
+      [24, 0], [8, -6], [-4, -13], [-14, -10], [-8, -3],
+      [-16, 0], [-8, 3], [-14, 10], [-4, 13], [8, 6],
     ],
   },
 ];
@@ -87,6 +107,7 @@ function getShipSkin() {
 function cycleShipSkin() {
   shipSkinIndex = (shipSkinIndex + 1) % SHIP_SKINS.length;
   shipSkinMessageTimer = 1.8;
+  if (ship) ship.radius = 12 * getShipSkin().scale;
   try {
     localStorage.setItem(SHIP_SKIN_STORAGE_KEY, getShipSkin().id);
   } catch {
@@ -273,7 +294,7 @@ class Ship {
     this.angle  = -Math.PI / 2;
     this.vx     = 0;
     this.vy     = 0;
-    this.radius = 12;
+    this.radius = 12 * getShipSkin().scale;
     this.thrusting     = false;
     this.invincible    = 3;
     this.shootCooldown = 0;
@@ -323,7 +344,7 @@ class Ship {
   tryShoot() {
     if (this.shootCooldown > 0 || this.dead) return [];
     this.shootCooldown = 0.2;
-    const NOSE = 21;
+    const NOSE = 21 * getShipSkin().scale;
     const ox = this.x + Math.cos(this.angle) * NOSE;
     const oy = this.y + Math.sin(this.angle) * NOSE;
     if (this.tripleShotTimer > 0) {
@@ -358,7 +379,8 @@ class Ship {
     ctx.save();
     ctx.translate(this.x, this.y);
     ctx.rotate(this.angle);
-    drawShipShape(getShipSkin(), 1, this.thrusting);
+    const skin = getShipSkin();
+    drawShipShape(skin, skin.scale, this.thrusting);
     ctx.restore();
 
     if (this.shieldTimer > 0) {
@@ -613,7 +635,7 @@ function update(dt) {
       if (!a.dead && !b.dead && dist(b, a) < a.radius) {
         b.dead = true;
         a.dead = true;
-        score += a.points;
+        score += a.points * getShipSkin().scoreMultiplier;
         explode(a.x, a.y, a.size * 5);
         if (Math.random() < 0.15) {
           const PowerUp = Math.random() < 0.5 ? SpeedPowerUp : TripleShotPowerUp;
@@ -669,6 +691,16 @@ function drawHUD() {
 
   ctx.textAlign = 'left';
   ctx.fillText(`SCORE  ${score}`, 14, 26);
+
+  if (getShipSkin().scoreMultiplier > 1) {
+    ctx.fillStyle = getShipSkin().color;
+    ctx.fillText(
+      `PUNTOS x${getShipSkin().scoreMultiplier}`,
+      14 + ctx.measureText(`SCORE  ${score}`).width + 14,
+      26,
+    );
+    ctx.fillStyle = '#fff';
+  }
 
   let statusY = 48;
   if (ship.speedBoostTimer > 0) {
