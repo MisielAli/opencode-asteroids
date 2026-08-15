@@ -1,11 +1,11 @@
-name: Issue Formatter
+name: Issue Triage
 
 on:
   issues:
     types: [opened]
 
 jobs:
-  format-issue:
+  triage-issue:
     runs-on: ubuntu-latest
     permissions:
       id-token: write
@@ -15,7 +15,7 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Classify and format issue
+      - name: Triage issue
         uses: anomalyco/opencode/github@latest
         env:
           OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
@@ -30,12 +30,13 @@ jobs:
 
             Preserve the issue title. Preserve the original issue body byte-for-byte as the first part of the edited body. Do not correct, translate, move, or remove any author-provided text.
 
-            If the body already contains `<!-- managed-by:issue-formatter -->`, do not edit the body again. Otherwise, append a managed section after the original body, separated by a newline and `---`. Keep the HTML marker exactly as shown, but translate the heading, fields, and checklist to the issue's language:
+            If the body already contains `<!-- managed-by:issue-triage -->`, do not edit the body again. Otherwise, append a managed section after the original body, separated by a newline and `---`. Keep the HTML marker exactly as shown, but translate the heading, fields, and checklist to the issue's language:
 
-            <!-- managed-by:issue-formatter -->
-            ### Automatic review
+            <!-- managed-by:issue-triage -->
+            ### Issue triage
             **Summary:** A concise neutral summary of the report.
             **Detected reproduction steps:** List only steps clearly stated in the issue, or `Not specified`.
+            **Information needed:** State only information required to investigate the issue that is not included, or `None`.
             **Review checklist:**
             - [ ] Reproducible
             - [ ] Environment specified
