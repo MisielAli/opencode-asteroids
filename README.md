@@ -50,5 +50,6 @@ Luego visita `http://localhost:3000`.
 - Power-up Triple Shot: dispara tres balas paralelas durante 5 segundos
 - Escudo: protege durante 3 segundos y absorbe asteroides sin otorgar puntos; tarda 10 segundos en recargarse
 - Estrella fugaz: asteroide rápido que aparece periódicamente, dura 6 segundos y no se divide
-- 3 skins de nave: Clásica, Interceptor y Exploradora
+- 4 skins de nave: Clásica, Interceptor, Exploradora y Gigante
+- La skin Gigante es morada, del doble de tamaño que la original y otorga puntos dobles
 - La skin seleccionada se conserva en el navegador

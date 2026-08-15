@@ -40,6 +40,8 @@ const SHIP_SKINS = [
     thrusterX: -8,
     thrusterWidth: 4,
     points: [[20, 0], [-12, -9], [-7, 0], [-12, 9]],
+    scale: 1,
+    scoreMultiplier: 1,
   },
   {
     id: 'interceptor',
@@ -52,6 +54,8 @@ const SHIP_SKINS = [
       [21, 0], [5, -5], [-11, -10], [-7, -2],
       [-15, 0], [-7, 2], [-11, 10], [5, 5],
     ],
+    scale: 1,
+    scoreMultiplier: 1,
   },
   {
     id: 'explorer',
@@ -64,6 +68,19 @@ const SHIP_SKINS = [
       [18, 0], [10, -7], [-5, -12], [-12, -6],
       [-8, 0], [-12, 6], [-5, 12], [10, 7],
     ],
+    scale: 1,
+    scoreMultiplier: 1,
+  },
+  {
+    id: 'giant',
+    name: 'GIGANTE',
+    color: '#a855f7',
+    flameColor: 'rgba(216, 150, 255, 0.9)',
+    thrusterX: -8,
+    thrusterWidth: 5,
+    points: [[20, 0], [-12, -9], [-7, 0], [-12, 9]],
+    scale: 2,
+    scoreMultiplier: 2,
   },
 ];
 
@@ -267,13 +284,20 @@ class ShootingStar extends Asteroid {
 class Ship {
   constructor() { this.reset(); }
 
+  get radius() {
+    return 12 * getShipSkin().scale;
+  }
+
+  get shieldRadius() {
+    return 28 * getShipSkin().scale;
+  }
+
   reset() {
     this.x      = W / 2;
     this.y      = H / 2;
     this.angle  = -Math.PI / 2;
     this.vx     = 0;
     this.vy     = 0;
-    this.radius = 12;
     this.thrusting     = false;
     this.invincible    = 3;
     this.shootCooldown = 0;
@@ -281,7 +305,6 @@ class Ship {
     this.tripleShotTimer = 0;
     this.shieldTimer = 0;
     this.shieldCooldown = 0;
-    this.shieldRadius = 28;
     this.dead          = false;
   }
 
@@ -323,7 +346,7 @@ class Ship {
   tryShoot() {
     if (this.shootCooldown > 0 || this.dead) return [];
     this.shootCooldown = 0.2;
-    const NOSE = 21;
+    const NOSE = 21 * getShipSkin().scale;
     const ox = this.x + Math.cos(this.angle) * NOSE;
     const oy = this.y + Math.sin(this.angle) * NOSE;
     if (this.tripleShotTimer > 0) {
@@ -358,7 +381,8 @@ class Ship {
     ctx.save();
     ctx.translate(this.x, this.y);
     ctx.rotate(this.angle);
-    drawShipShape(getShipSkin(), 1, this.thrusting);
+    const skin = getShipSkin();
+    drawShipShape(skin, skin.scale, this.thrusting);
     ctx.restore();
 
     if (this.shieldTimer > 0) {
@@ -613,7 +637,7 @@ function update(dt) {
       if (!a.dead && !b.dead && dist(b, a) < a.radius) {
         b.dead = true;
         a.dead = true;
-        score += a.points;
+        score += a.points * getShipSkin().scoreMultiplier;
         explode(a.x, a.y, a.size * 5);
         if (Math.random() < 0.15) {
           const PowerUp = Math.random() < 0.5 ? SpeedPowerUp : TripleShotPowerUp;
@@ -656,10 +680,11 @@ function update(dt) {
 
 // ── Draw ──────────────────────────────────────────────────────────────────────
 function drawLifeIcon(x, y) {
+  const skin = getShipSkin();
   ctx.save();
   ctx.translate(x, y);
   ctx.rotate(-Math.PI / 2);
-  drawShipShape(getShipSkin(), 0.45, false, 1.2);
+  drawShipShape(skin, 0.45 * skin.scale, false, 1.2);
   ctx.restore();
 }
 
@@ -671,6 +696,11 @@ function drawHUD() {
   ctx.fillText(`SCORE  ${score}`, 14, 26);
 
   let statusY = 48;
+  if (getShipSkin().scoreMultiplier > 1) {
+    ctx.fillStyle = getShipSkin().color;
+    ctx.fillText(`PUNTOS x${getShipSkin().scoreMultiplier}`, 14, statusY);
+    statusY += 22;
+  }
   if (ship.speedBoostTimer > 0) {
     ctx.fillStyle = '#35d9ff';
     ctx.fillText(`VELOCIDAD x2  ${ship.speedBoostTimer.toFixed(1)}s`, 14, statusY);
@@ -698,7 +728,7 @@ function drawHUD() {
   ctx.fillText(`NIVEL ${level}`, W / 2, 26);
 
   for (let i = 0; i < lives; i++)
-    drawLifeIcon(W - 16 - i * 22, 18);
+    drawLifeIcon(W - 16 - i * 22 * getShipSkin().scale, 18);
 
   if (shipSkinMessageTimer > 0) {
     ctx.fillStyle = getShipSkin().color;
