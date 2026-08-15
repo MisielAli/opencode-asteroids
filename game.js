@@ -29,6 +29,97 @@ const dist  = (a, b)   => Math.hypot(a.x - b.x, a.y - b.y);
 const rand  = (min, max) => min + Math.random() * (max - min);
 const randInt = (min, max) => Math.floor(rand(min, max + 1));
 
+// ── Skins de la nave ──────────────────────────────────────────────────────────
+const SHIP_SKIN_STORAGE_KEY = 'asteroids.shipSkin';
+const SHIP_SKINS = [
+  {
+    id: 'classic',
+    name: 'CLASICA',
+    color: '#fff',
+    flameColor: 'rgba(255, 130, 0, 0.85)',
+    thrusterX: -8,
+    thrusterWidth: 4,
+    points: [[20, 0], [-12, -9], [-7, 0], [-12, 9]],
+  },
+  {
+    id: 'interceptor',
+    name: 'INTERCEPTOR',
+    color: '#35d9ff',
+    flameColor: 'rgba(95, 235, 255, 0.9)',
+    thrusterX: -12,
+    thrusterWidth: 3,
+    points: [
+      [21, 0], [5, -5], [-11, -10], [-7, -2],
+      [-15, 0], [-7, 2], [-11, 10], [5, 5],
+    ],
+  },
+  {
+    id: 'explorer',
+    name: 'EXPLORADORA',
+    color: '#ff9f43',
+    flameColor: 'rgba(255, 196, 92, 0.9)',
+    thrusterX: -9,
+    thrusterWidth: 5,
+    points: [
+      [18, 0], [10, -7], [-5, -12], [-12, -6],
+      [-8, 0], [-12, 6], [-5, 12], [10, 7],
+    ],
+  },
+];
+
+function loadShipSkinIndex() {
+  try {
+    const savedId = localStorage.getItem(SHIP_SKIN_STORAGE_KEY);
+    const index = SHIP_SKINS.findIndex(skin => skin.id === savedId);
+    return index >= 0 ? index : 0;
+  } catch {
+    return 0;
+  }
+}
+
+let shipSkinIndex = loadShipSkinIndex();
+let shipSkinMessageTimer = 0;
+
+function getShipSkin() {
+  return SHIP_SKINS[shipSkinIndex];
+}
+
+function cycleShipSkin() {
+  shipSkinIndex = (shipSkinIndex + 1) % SHIP_SKINS.length;
+  shipSkinMessageTimer = 1.8;
+  try {
+    localStorage.setItem(SHIP_SKIN_STORAGE_KEY, getShipSkin().id);
+  } catch {
+    // El juego sigue funcionando si el navegador bloquea el almacenamiento.
+  }
+}
+
+function drawShipShape(skin, scale = 1, thrusting = false, lineWidth = 1.5) {
+  ctx.save();
+  ctx.scale(scale, scale);
+  ctx.strokeStyle = skin.color;
+  ctx.lineWidth   = lineWidth / scale;
+  ctx.lineJoin    = 'round';
+
+  ctx.beginPath();
+  ctx.moveTo(skin.points[0][0], skin.points[0][1]);
+  for (let i = 1; i < skin.points.length; i++)
+    ctx.lineTo(skin.points[i][0], skin.points[i][1]);
+  ctx.closePath();
+  ctx.stroke();
+
+  if (thrusting && Math.random() > 0.35) {
+    ctx.beginPath();
+    ctx.moveTo(skin.thrusterX, -skin.thrusterWidth);
+    ctx.lineTo(skin.thrusterX - rand(6, 14), 0);
+    ctx.lineTo(skin.thrusterX, skin.thrusterWidth);
+    ctx.strokeStyle = skin.flameColor;
+    ctx.stroke();
+  }
+
+  ctx.restore();
+}
+
 // ── Bullet ────────────────────────────────────────────────────────────────────
 class Bullet {
   constructor(x, y, angle) {
@@ -250,29 +341,7 @@ class Ship {
     ctx.save();
     ctx.translate(this.x, this.y);
     ctx.rotate(this.angle);
-    ctx.strokeStyle = '#fff';
-    ctx.lineWidth   = 1.5;
-    ctx.lineJoin    = 'round';
-
-    // Silueta clásica: triángulo con muesca trasera
-    ctx.beginPath();
-    ctx.moveTo( 20,  0);   // nariz
-    ctx.lineTo(-12, -9);   // ala izquierda
-    ctx.lineTo( -7,  0);   // muesca trasera
-    ctx.lineTo(-12,  9);   // ala derecha
-    ctx.closePath();
-    ctx.stroke();
-
-    // Llama del propulsor
-    if (this.thrusting && Math.random() > 0.35) {
-      ctx.beginPath();
-      ctx.moveTo(-8, -4);
-      ctx.lineTo(-8 - rand(6, 14), 0);
-      ctx.lineTo(-8,  4);
-      ctx.strokeStyle = 'rgba(255, 130, 0, 0.85)';
-      ctx.stroke();
-    }
-
+    drawShipShape(getShipSkin(), 1, this.thrusting);
     ctx.restore();
   }
 }
@@ -464,6 +533,9 @@ function killShip() {
 
 // ── Update ────────────────────────────────────────────────────────────────────
 function update(dt) {
+  if (shipSkinMessageTimer > 0) shipSkinMessageTimer -= dt;
+  if (pressed('KeyS')) cycleShipSkin();
+
   if (state === 'gameover') {
     if (pressed('Space')) initGame();
     particles.forEach(p => p.update(dt));
@@ -552,16 +624,7 @@ function drawLifeIcon(x, y) {
   ctx.save();
   ctx.translate(x, y);
   ctx.rotate(-Math.PI / 2);
-  ctx.strokeStyle = '#fff';
-  ctx.lineWidth   = 1.2;
-  ctx.lineJoin    = 'round';
-  ctx.beginPath();
-  ctx.moveTo( 9,  0);
-  ctx.lineTo(-6, -5);
-  ctx.lineTo(-3,  0);
-  ctx.lineTo(-6,  5);
-  ctx.closePath();
-  ctx.stroke();
+  drawShipShape(getShipSkin(), 0.45, false, 1.2);
   ctx.restore();
 }
 
@@ -589,6 +652,12 @@ function drawHUD() {
 
   for (let i = 0; i < lives; i++)
     drawLifeIcon(W - 16 - i * 22, 18);
+
+  if (shipSkinMessageTimer > 0) {
+    ctx.fillStyle = getShipSkin().color;
+    ctx.textAlign = 'center';
+    ctx.fillText(`NAVE: ${getShipSkin().name}`, W / 2, H - 18);
+  }
 
 }
 
